@@ -1,6 +1,7 @@
 // Data configuration for categories
 const ADMIN_ENDPOINT = ""; // Set to your secure admin API endpoint (HTTPS)
 const START_KEY = "hs_price_calc_started";
+const WHATSAPP_NUMBER = "923127231875"; // international format without +
 const STEP_KEY = "hs_price_calc_step";
 // determine initial step from localStorage (defaults to 1)
 const savedStepStr =
@@ -577,8 +578,74 @@ function renderFinalReview() {
   );
   finalReview.appendChild(list);
   finalReview.appendChild(
-    el("div", { class: "review-total" }, `Total: ${fmt(total)}`)
+    el(
+      "button",
+      {
+        class: "review-total",
+        type: "button",
+        title: "Send quotation on WhatsApp",
+        onClick: () => sendWhatsAppQuote(),
+      },
+      `Total: ${fmt(total)}`
+    )
   );
+}
+
+function composeWhatsAppMessage() {
+  const name = document.getElementById("clientName").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const mobile = document.getElementById("mobile").value.trim();
+  const date = new Date().toLocaleDateString();
+  const lines = [];
+  lines.push("Software Sales Quotation");
+  lines.push("Health Spire Pvt Ltd");
+  lines.push(`Date: ${date}`);
+  lines.push("");
+  lines.push(`Client: ${name || "-"}`);
+  if (email) lines.push(`Email: ${email}`);
+  if (mobile) lines.push(`Mobile: ${mobile}`);
+  lines.push("");
+  const cats = [...state.categories];
+  if (cats.length) lines.push(`Categories: ${cats.join(", ")}`);
+  lines.push("");
+  // Table-like items
+  lines.push("S/No | Description | Qty | Unit Price | Total");
+  lines.push("-----|------------|-----|------------|------");
+  let row = 1;
+  const addRow = (desc, price) => {
+    lines.push(
+      `${String(row).padStart(2, "0")} | ${desc} | 01 | ${fmt(price)} | ${fmt(
+        price
+      )}`
+    );
+    row += 1;
+  };
+  cats.forEach((cat) => {
+    const cfg = CATEGORIES[cat];
+    if (!cfg) return;
+    if (cfg.essentialPack && state.essentialByCat.get(cat)) {
+      addRow(`${cat} – Essential Pack`, cfg.essentialPack.price);
+    }
+    const map = new Map();
+    [...(cfg.paid || []), ...(cfg.extras || [])].forEach((m) => map.set(m.id, m));
+    const s = state.selectedByCat.get(cat) || new Set();
+    s.forEach((id) => {
+      const m = map.get(id);
+      if (m) addRow(`${cat} – ${m.name}`, m.price);
+    });
+  });
+  lines.push("");
+  const total = computeTotal();
+  lines.push(`Total Amount Payable: ${fmt(total)}`);
+  lines.push("");
+  lines.push("Sent from Healthspire Price Calculator");
+  return lines.join("\n");
+}
+
+function sendWhatsAppQuote() {
+  const text = composeWhatsAppMessage();
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+  window.open(url, "_blank");
 }
 
 // State
