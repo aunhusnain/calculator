@@ -1,16 +1,8 @@
 // Data configuration for categories
 const ADMIN_ENDPOINT = ""; // Set to your secure admin API endpoint (HTTPS)
 const WHATSAPP_NUMBER = "923127231875"; // international format without +
-const STEP_KEY = "hs_price_calc_step";
-// determine initial step from localStorage (defaults to 1)
-const savedStepStr =
-  typeof window !== "undefined" && window.localStorage
-    ? window.localStorage.getItem(STEP_KEY)
-    : null;
-const INITIAL_STEP = (() => {
-  const n = Number(savedStepStr || 1);
-  return n >= 1 && n <= 4 ? n : 1;
-})();
+// wizard should always start from step 1 (Info)
+const INITIAL_STEP = 1;
 const CATEGORIES = {
   Clinic: {
     free: ["Help & Support"],
@@ -729,10 +721,6 @@ function updateStepper() {
 
 function showStep(n) {
   state.step = n;
-  // persist step so refresh returns to the same page
-  try {
-    if (window.localStorage) window.localStorage.setItem(STEP_KEY, String(n));
-  } catch (e) {}
   stepScreens.forEach((el, idx) => {
     if (!el) return;
     const isTarget = idx === n - 1;
