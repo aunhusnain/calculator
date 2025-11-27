@@ -1,6 +1,5 @@
 // Data configuration for categories
 const ADMIN_ENDPOINT = ""; // Set to your secure admin API endpoint (HTTPS)
-const START_KEY = "hs_price_calc_started";
 const WHATSAPP_NUMBER = "923127231875"; // international format without +
 const STEP_KEY = "hs_price_calc_step";
 // determine initial step from localStorage (defaults to 1)
@@ -12,13 +11,6 @@ const INITIAL_STEP = (() => {
   const n = Number(savedStepStr || 1);
   return n >= 1 && n <= 4 ? n : 1;
 })();
-const hasStartedBefore =
-  typeof window !== "undefined" &&
-  window.localStorage &&
-  window.localStorage.getItem(START_KEY) === "1";
-if (hasStartedBefore) {
-  document.body.classList.add("started");
-}
 const CATEGORIES = {
   Clinic: {
     free: ["Help & Support"],
@@ -644,8 +636,21 @@ function composeWhatsAppMessage() {
 
 function sendWhatsAppQuote() {
   const text = composeWhatsAppMessage();
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
-  window.open(url, "_blank");
+  const url = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(
+    text
+  )}`;
+
+  // Desktop: try opening a new tab, Mobile: prefer same-tab navigation
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.location.href = url;
+  } else {
+    const win = window.open(url, "_blank");
+    if (!win) {
+      // popup blocked, fallback to same tab
+      window.location.href = url;
+    }
+  }
 }
 
 // State
@@ -768,11 +773,6 @@ if (topBackBtn) {
 if (startBtn) {
   startBtn.addEventListener("click", () => {
     document.body.classList.add("started");
-    try {
-      if (window.localStorage) {
-        window.localStorage.setItem(START_KEY, "1");
-      }
-    } catch (e) {}
     const nameInput = document.getElementById("clientName");
     if (nameInput) nameInput.focus();
   });
